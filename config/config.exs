@@ -16,6 +16,8 @@ config :agent_ops, Oban,
   plugins: [Oban.Plugins.Pruner],
   queues: [agent_runs: 10]
 
+config :agent_ops, :llm_provider, AgentOps.LLM.OpenAIClient
+
 # Configures the endpoint
 config :agent_ops, AgentOpsWeb.Endpoint,
   url: [host: "localhost"],
