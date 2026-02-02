@@ -1,5 +1,5 @@
 defmodule AgentOps.Agent.RunnerIntegrationTest do
-  use AgentOps.DataCase, async: true
+  use AgentOps.DataCase, async: false
 
   alias AgentOps
   alias AgentOps.Agent.Runner
@@ -41,6 +41,8 @@ defmodule AgentOps.Agent.RunnerIntegrationTest do
     assert :plan in types
     assert :proposal in types
     assert :final in types
+
+    Application.put_env(:agent_ops, :llm_provider, AgentOps.LLM.StubClient)
   end
 
   test "unknown tool fails closed" do
@@ -73,6 +75,8 @@ defmodule AgentOps.Agent.RunnerIntegrationTest do
 
     steps = AgentOps.list_agent_steps_for_run(run.id)
     assert Enum.any?(steps, &(&1.step_type == :error))
+
+    Application.put_env(:agent_ops, :llm_provider, AgentOps.LLM.StubClient)
   end
 
   test "invalid json triggers repair attempt then fails" do
@@ -101,39 +105,15 @@ defmodule AgentOps.Agent.RunnerIntegrationTest do
 
     steps = AgentOps.list_agent_steps_for_run(run.id)
     assert Enum.any?(steps, &(&1.step_type == :error))
+
+    Application.put_env(:agent_ops, :llm_provider, AgentOps.LLM.StubClient)
   end
 
   defp stub_llm(opts) do
-    plan = Map.get(opts, :plan)
-    proposal = Map.get(opts, :proposal)
-    plan_raw = Map.get(opts, :plan_raw)
-    plan_repair_raw = Map.get(opts, :plan_repair_raw)
-
-    Code.eval_string("""
-      defmodule AgentOps.LLM.RunnerIntegrationStub do
-        @behaviour AgentOps.LLM.Client
-
-        def complete(prompt, _opts) do
-          cond do
-            String.contains?(prompt, "hypothesis") ->
-              case {#{inspect(plan_raw)}, #{inspect(plan_repair_raw)}} do
-                {nil, _} -> {:ok, %{content: #{inspect(Jason.encode!(plan))}, usage: %{}}}
-                {raw, nil} -> {:ok, %{content: raw, usage: %{}}}
-                {raw, repair_raw} ->
-                  if String.contains?(prompt, "Return valid JSON only") do
-                    {:ok, %{content: repair_raw, usage: %{}}}
-                  else
-                    {:ok, %{content: raw, usage: %{}}}
-                  end
-              end
-
-            true ->
-              {:ok, %{content: #{inspect(Jason.encode!(proposal))}, usage: %{}}}
-          end
-        end
-      end
-    """)
-
+    Process.put({AgentOps.LLM.RunnerIntegrationStub, :plan}, Map.get(opts, :plan))
+    Process.put({AgentOps.LLM.RunnerIntegrationStub, :proposal}, Map.get(opts, :proposal))
+    Process.put({AgentOps.LLM.RunnerIntegrationStub, :plan_raw}, Map.get(opts, :plan_raw))
+    Process.put({AgentOps.LLM.RunnerIntegrationStub, :plan_repair_raw}, Map.get(opts, :plan_repair_raw))
     Application.put_env(:agent_ops, :llm_provider, AgentOps.LLM.RunnerIntegrationStub)
   end
 end
