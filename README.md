@@ -1,7 +1,7 @@
 # Endpoint Remediation Planner (AgentOps)
 
 ## Overview
-Endpoint Remediation Planner is a safe, deterministic workflow that uses an LLM only for planning and proposing remediations. The system executes an allowlisted set of inventory tools against seeded endpoint data, validates all AI output, and stores an auditable timeline of steps in Postgres. No scripts are executed on endpoints.
+Endpoint Remediation Planner is a safe, deterministic workflow that uses an LLM only for planning and proposing remediations. It is designed to help sysadmins and endpoint engineers investigate issues across fleets and draft consistent remediation recommendations without granting the model any execution capability. The system executes an allowlisted set of inventory tools against seeded endpoint data, validates all AI output, and stores an auditable timeline of steps in Postgres. No scripts are executed on endpoints.
 
 Inputs:
 - A natural‑language request (input)
@@ -17,7 +17,7 @@ Outputs:
   - final (completion marker)
   - error (failure marker, only on failure)
 
-example:
+example "proposal" step output:
 ```json
 {
   "id": 98,
