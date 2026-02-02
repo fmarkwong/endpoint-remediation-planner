@@ -5,6 +5,7 @@ defmodule AgentOps.Agent.Runner do
   alias AgentOps.Agent.Prompts
   alias AgentOps.Agent.Validators
   alias AgentOps.LLM.Client
+  alias AgentOps.Observability.Log
   alias AgentOps.Tools.Registry
   alias AgentOps.Tools.Scripts
 
@@ -61,18 +62,26 @@ defmodule AgentOps.Agent.Runner do
         |> extract_content()
       end
 
-      with {:ok, %{content: content}} <- Client.complete(prompt, temperature: 0),
+      started_at = System.monotonic_time(:millisecond)
+
+      with {:ok, %{content: content, usage: usage}} <- Client.complete(prompt, temperature: 0),
            {:ok, plan} <-
              Validators.validate_plan(content,
                tool_allowlist: tool_allowlist,
                endpoint_ids: endpoint_ids,
                repair_fun: repair_fun
              ) do
+        latency_ms = System.monotonic_time(:millisecond) - started_at
+
         AgentOps.create_agent_step(%{
           agent_run_id: run.id,
           step_type: :plan,
-          output: plan
+          output: plan,
+          latency_ms: latency_ms,
+          token_usage: usage
         })
+
+        Log.info(run.id, nil, "planner completed", %{latency_ms: latency_ms})
 
         AgentOps.update_agent_run(run, %{state: Map.put(run.state || %{}, "plan", plan)})
         {:ok, plan}
@@ -87,19 +96,27 @@ defmodule AgentOps.Agent.Runner do
       tool = Map.get(step, "tool")
       input = Map.get(step, "input") || %{}
 
-      AgentOps.create_agent_step(%{
-        agent_run_id: run.id,
-        step_type: :tool_call,
-        input: %{"tool" => tool, "input" => input}
-      })
+      tool_call =
+        AgentOps.create_agent_step(%{
+          agent_run_id: run.id,
+          step_type: :tool_call,
+          input: %{"tool" => tool, "input" => input}
+        })
+
+      started_at = System.monotonic_time(:millisecond)
 
       case Registry.execute(tool, input) do
         {:ok, result} ->
+          latency_ms = System.monotonic_time(:millisecond) - started_at
+
           AgentOps.create_agent_step(%{
             agent_run_id: run.id,
             step_type: :observation,
-            output: %{"tool" => tool, "result" => result}
+            output: %{"tool" => tool, "result" => result},
+            latency_ms: latency_ms
           })
+
+          Log.info(run.id, step_id(tool_call), "tool completed", %{tool: tool, latency_ms: latency_ms})
 
           {:cont, {:ok, acc ++ [%{"tool" => tool, "result" => result}]}}
 
@@ -127,18 +144,26 @@ defmodule AgentOps.Agent.Runner do
         |> extract_content()
       end
 
-      with {:ok, %{content: content}} <- Client.complete(prompt, temperature: 0),
+      started_at = System.monotonic_time(:millisecond)
+
+      with {:ok, %{content: content, usage: usage}} <- Client.complete(prompt, temperature: 0),
            {:ok, proposal} <-
              Validators.validate_proposal(content,
                template_allowlist: template_allowlist,
                params_validator: &Scripts.validate_params/2,
                repair_fun: repair_fun
              ) do
+        latency_ms = System.monotonic_time(:millisecond) - started_at
+
         AgentOps.create_agent_step(%{
           agent_run_id: run.id,
           step_type: :proposal,
-          output: proposal
+          output: proposal,
+          latency_ms: latency_ms,
+          token_usage: usage
         })
+
+        Log.info(run.id, nil, "proposer completed", %{latency_ms: latency_ms})
 
         {:ok, proposal}
       end
@@ -147,6 +172,9 @@ defmodule AgentOps.Agent.Runner do
 
   defp extract_content({:ok, %{content: content}}), do: content
   defp extract_content(_), do: ""
+
+  defp step_id({:ok, %{id: id}}), do: id
+  defp step_id(_), do: nil
 
   defp stringify_keys(value) when is_list(value) do
     Enum.map(value, &stringify_keys/1)
