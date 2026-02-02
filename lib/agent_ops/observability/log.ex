@@ -24,6 +24,7 @@ defmodule AgentOps.Observability.Log do
     try do
       fun.()
     after
+      Logger.reset_metadata()
       Logger.metadata(previous)
     end
   end
