@@ -2,6 +2,19 @@ defmodule AgentOps.AgentStep do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @derive {Jason.Encoder,
+           only: [
+             :id,
+             :step_type,
+             :input,
+             :output,
+             :error,
+             :latency_ms,
+             :token_usage,
+             :agent_run_id,
+             :inserted_at
+           ]}
+
   @step_types [:plan, :tool_call, :observation, :proposal, :final, :error]
 
   schema "agent_steps" do

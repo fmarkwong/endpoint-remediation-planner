@@ -26,7 +26,15 @@ defmodule AgentOps do
     |> Repo.insert()
   end
 
+  def list_endpoints_by_ids(ids) when is_list(ids) do
+    Endpoint
+    |> where([e], e.id in ^ids)
+    |> Repo.all()
+  end
+
   def get_agent_run!(id), do: Repo.get!(AgentRun, id)
+
+  def get_agent_run(id), do: Repo.get(AgentRun, id)
 
   def create_agent_run(attrs) do
     %AgentRun{}

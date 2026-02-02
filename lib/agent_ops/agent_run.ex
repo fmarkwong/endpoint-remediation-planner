@@ -2,6 +2,20 @@ defmodule AgentOps.AgentRun do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @derive {Jason.Encoder,
+           only: [
+             :id,
+             :input,
+             :mode,
+             :status,
+             :state,
+             :llm_provider,
+             :llm_model,
+             :prompt_version,
+             :inserted_at,
+             :updated_at
+           ]}
+
   @modes [:analyze_only, :propose]
   @statuses [:queued, :running, :succeeded, :failed]
 

@@ -7,6 +7,9 @@ defmodule AgentOpsWeb.Router do
 
   scope "/api", AgentOpsWeb do
     pipe_through :api
+
+    post "/runs", RunsController, :create
+    get "/runs/:id", RunsController, :show
   end
 
   scope "/", AgentOpsWeb do
