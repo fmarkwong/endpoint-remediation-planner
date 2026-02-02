@@ -4,22 +4,31 @@ defmodule AgentOps.Agent.Validators do
   @risk_levels ["low", "medium", "high"]
 
   def validate_plan(raw, opts \\ []) when is_binary(raw) do
-    with {:ok, plan} <- parse_with_repair(raw, opts),
-         :ok <- validate_plan_shape(plan),
-         :ok <- validate_plan_semantics(plan, opts) do
-      {:ok, plan}
-    else
-      {:error, reason} -> {:error, reason}
-    end
+    validate_with_repair(:plan, raw, opts)
   end
 
   def validate_proposal(raw, opts \\ []) when is_binary(raw) do
-    with {:ok, proposal} <- parse_with_repair(raw, opts),
-         :ok <- validate_proposal_shape(proposal),
-         :ok <- validate_proposal_semantics(proposal, opts) do
-      {:ok, proposal}
+    validate_with_repair(:proposal, raw, opts)
+  end
+
+  defp validate_with_repair(type, raw, opts) do
+    with {:ok, data} <- parse_with_repair(raw, opts),
+         :ok <- validate_shape(type, data),
+         :ok <- validate_semantics(type, data, opts) do
+      {:ok, data}
     else
-      {:error, reason} -> {:error, reason}
+      {:error, reason} ->
+        case Keyword.get(opts, :repair_fun) do
+          nil ->
+            {:error, reason}
+
+          repair_fun ->
+            repaired = repair_fun.(
+              "Return valid JSON only that matches the required schema. Do not include any prose."
+            )
+
+            validate_with_repair(type, repaired, Keyword.delete(opts, :repair_fun))
+        end
     end
   end
 
@@ -50,6 +59,12 @@ defmodule AgentOps.Agent.Validators do
       _ -> {:error, :invalid_json}
     end
   end
+
+  defp validate_shape(:plan, plan), do: validate_plan_shape(plan)
+  defp validate_shape(:proposal, proposal), do: validate_proposal_shape(proposal)
+
+  defp validate_semantics(:plan, plan, opts), do: validate_plan_semantics(plan, opts)
+  defp validate_semantics(:proposal, proposal, opts), do: validate_proposal_semantics(proposal, opts)
 
   defp validate_plan_shape(%{"hypothesis" => hypothesis, "steps" => steps, "stop_conditions" => stop, "risk_level" => risk})
        when is_binary(hypothesis) and is_list(steps) and is_list(stop) and is_binary(risk) do

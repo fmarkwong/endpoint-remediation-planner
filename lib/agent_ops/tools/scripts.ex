@@ -1,10 +1,12 @@
 defmodule AgentOps.Tools.Scripts do
   @moduledoc false
 
+  @allowed_services ["gupdate", "wuauserv"]
+
   @templates %{
-    "enable_windows_service" => %{required: ["service"]},
-    "reinstall_application" => %{required: ["app_name"]},
-    "restart_service" => %{required: ["service"]}
+    "enable_windows_service" => %{required: ["service"], allowed: ["service"]},
+    "reinstall_application" => %{required: ["app_name"], allowed: ["app_name"]},
+    "restart_service" => %{required: ["service"], allowed: ["service"]}
   }
 
   def list_templates do
@@ -24,11 +26,22 @@ defmodule AgentOps.Tools.Scripts do
       nil ->
         {:error, :unknown_template}
 
-      %{required: required} ->
-        if Enum.all?(required, &valid_param?(params, &1)) do
-          :ok
-        else
-          {:error, :invalid_params}
+      %{required: required, allowed: allowed} ->
+        param_keys = params |> Map.keys() |> Enum.map(&to_string/1)
+
+        cond do
+          not Enum.all?(required, &valid_param?(params, &1)) ->
+            {:error, :invalid_params}
+
+          Enum.any?(param_keys, fn key -> key not in allowed end) ->
+            {:error, :invalid_params}
+
+          template_id in ["enable_windows_service", "restart_service"] and
+              not valid_service_param?(params) ->
+            {:error, :invalid_params}
+
+          true ->
+            :ok
         end
     end
   end
@@ -38,5 +51,10 @@ defmodule AgentOps.Tools.Scripts do
   defp valid_param?(params, key) do
     value = Map.get(params, key) || Map.get(params, String.to_atom(key))
     is_binary(value) and byte_size(value) > 0
+  end
+
+  defp valid_service_param?(params) do
+    service = Map.get(params, "service") || Map.get(params, :service)
+    is_binary(service) and service in @allowed_services
   end
 end

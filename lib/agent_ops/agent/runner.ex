@@ -1,0 +1,162 @@
+defmodule AgentOps.Agent.Runner do
+  @moduledoc false
+
+  alias AgentOps
+  alias AgentOps.Agent.Prompts
+  alias AgentOps.Agent.Validators
+  alias AgentOps.LLM.Client
+  alias AgentOps.Tools.Registry
+  alias AgentOps.Tools.Scripts
+
+  @max_steps 5
+
+  def run(run_id) when is_integer(run_id) do
+    run = AgentOps.get_agent_run!(run_id)
+
+    if run.status in [:succeeded, :failed] do
+      :ok
+    else
+      AgentOps.update_agent_run(run, %{status: :running})
+
+      endpoint_ids = run.state["endpoint_ids"] || run.state[:endpoint_ids] || []
+
+      with {:ok, plan} <- maybe_plan(run, endpoint_ids),
+           {:ok, observations} <- execute_steps(run, plan),
+           {:ok, _proposal} <- maybe_propose(run, observations, endpoint_ids) do
+        AgentOps.create_agent_step(%{
+          agent_run_id: run.id,
+          step_type: :final,
+          output: %{"status" => "succeeded"}
+        })
+
+        AgentOps.update_agent_run(run, %{status: :succeeded})
+        {:ok, :succeeded}
+      else
+        {:error, reason} ->
+          AgentOps.create_agent_step(%{
+            agent_run_id: run.id,
+            step_type: :error,
+            error: inspect(reason)
+          })
+
+          AgentOps.update_agent_run(run, %{status: :failed})
+          {:error, reason}
+      end
+    end
+  end
+
+  def run(_run_id), do: {:error, :invalid_run_id}
+
+  defp maybe_plan(run, endpoint_ids) do
+    if run.state["plan"] do
+      {:ok, run.state["plan"]}
+    else
+      tool_allowlist = Registry.allowlist()
+      prompt =
+        Prompts.planner_prompt(run.input, endpoint_ids) <>
+          "\nAllowed tools: " <> Enum.join(tool_allowlist, ", ") <> "\nUse only these tools."
+
+      repair_fun = fn instruction ->
+        Client.complete(prompt <> "\n" <> instruction, temperature: 0)
+        |> extract_content()
+      end
+
+      with {:ok, %{content: content}} <- Client.complete(prompt, temperature: 0),
+           {:ok, plan} <-
+             Validators.validate_plan(content,
+               tool_allowlist: tool_allowlist,
+               endpoint_ids: endpoint_ids,
+               repair_fun: repair_fun
+             ) do
+        AgentOps.create_agent_step(%{
+          agent_run_id: run.id,
+          step_type: :plan,
+          output: plan
+        })
+
+        AgentOps.update_agent_run(run, %{state: Map.put(run.state || %{}, "plan", plan)})
+        {:ok, plan}
+      end
+    end
+  end
+
+  defp execute_steps(run, %{"steps" => steps}) when is_list(steps) do
+    steps
+    |> Enum.take(@max_steps)
+    |> Enum.reduce_while({:ok, []}, fn step, {:ok, acc} ->
+      tool = Map.get(step, "tool")
+      input = Map.get(step, "input") || %{}
+
+      AgentOps.create_agent_step(%{
+        agent_run_id: run.id,
+        step_type: :tool_call,
+        input: %{"tool" => tool, "input" => input}
+      })
+
+      case Registry.execute(tool, input) do
+        {:ok, result} ->
+          AgentOps.create_agent_step(%{
+            agent_run_id: run.id,
+            step_type: :observation,
+            output: %{"tool" => tool, "result" => result}
+          })
+
+          {:cont, {:ok, acc ++ [%{"tool" => tool, "result" => result}]}}
+
+        {:error, reason} ->
+          {:halt, {:error, reason}}
+      end
+    end)
+  end
+
+  defp execute_steps(_run, _plan), do: {:error, :invalid_plan}
+
+  defp maybe_propose(run, observations, endpoint_ids) do
+    if run.mode == :analyze_only do
+      {:ok, %{}}
+    else
+      observations_json = observations |> stringify_keys() |> Jason.encode!()
+      template_allowlist = Scripts.list_templates() |> Enum.map(& &1.id)
+      prompt =
+        Prompts.proposer_prompt(run.input, observations_json, endpoint_ids) <>
+          "\nAllowed templates: " <> Enum.join(template_allowlist, ", ") <>
+          "\nUse only these template_id values."
+
+      repair_fun = fn instruction ->
+        Client.complete(prompt <> "\n" <> instruction, temperature: 0)
+        |> extract_content()
+      end
+
+      with {:ok, %{content: content}} <- Client.complete(prompt, temperature: 0),
+           {:ok, proposal} <-
+             Validators.validate_proposal(content,
+               template_allowlist: template_allowlist,
+               params_validator: &Scripts.validate_params/2,
+               repair_fun: repair_fun
+             ) do
+        AgentOps.create_agent_step(%{
+          agent_run_id: run.id,
+          step_type: :proposal,
+          output: proposal
+        })
+
+        {:ok, proposal}
+      end
+    end
+  end
+
+  defp extract_content({:ok, %{content: content}}), do: content
+  defp extract_content(_), do: ""
+
+  defp stringify_keys(value) when is_list(value) do
+    Enum.map(value, &stringify_keys/1)
+  end
+
+  defp stringify_keys(value) when is_map(value) do
+    value
+    |> Enum.map(fn {key, val} -> {to_string(key), stringify_keys(val)} end)
+    |> Map.new()
+  end
+
+  defp stringify_keys(value), do: value
+end

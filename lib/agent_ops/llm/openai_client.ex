@@ -16,7 +16,8 @@ defmodule AgentOps.LLM.OpenAIClient do
           %{role: "system", content: "You are a helpful assistant."},
           %{role: "user", content: prompt}
         ],
-        temperature: Keyword.get(opts, :temperature, 0.2)
+        temperature: Keyword.get(opts, :temperature, 0.2),
+        response_format: Keyword.get(opts, :response_format, %{type: "json_object"})
       }
 
       headers = [

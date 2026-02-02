@@ -30,6 +30,19 @@ defmodule AgentOps.Tools.ScriptsTest do
              Scripts.validate_params("restart_service", %{"service" => ""})
   end
 
+  test "validate_params rejects invalid service values" do
+    assert {:error, :invalid_params} =
+             Scripts.validate_params("enable_windows_service", %{"service" => "chrome"})
+  end
+
+  test "validate_params rejects extra params" do
+    assert {:error, :invalid_params} =
+             Scripts.validate_params("enable_windows_service", %{
+               "service" => "gupdate",
+               "endpoints" => [1, 2]
+             })
+  end
+
   test "validate_params rejects unknown templates" do
     assert {:error, :unknown_template} = Scripts.validate_params("nope", %{})
   end
