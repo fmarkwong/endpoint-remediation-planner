@@ -10,7 +10,7 @@ defmodule AgentOpsWeb.RunsController do
     |> json(%{error: "input_required"})
   end
 
-  def create(conn, %{"mode" => mode}) when not is_binary(mode) do
+  def create(conn, %{"mode" => mode}) when not is_binary(mode) and not is_nil(mode) do
     conn
     |> put_status(:bad_request)
     |> json(%{error: "invalid_mode"})
