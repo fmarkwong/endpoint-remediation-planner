@@ -10,7 +10,10 @@ defmodule AgentOps.Agent.RunnerIntegrationTest do
         "hypothesis" => "gupdate disabled",
         "steps" => [
           %{"tool" => "get_installed_software", "input" => %{"endpoint_ids" => [1, 2, 3]}},
-          %{"tool" => "get_service_status", "input" => %{"endpoint_ids" => [1, 2, 3], "service_name" => "gupdate"}}
+          %{
+            "tool" => "get_service_status",
+            "input" => %{"endpoint_ids" => [1, 2, 3], "service_name" => "gupdate"}
+          }
         ],
         "stop_conditions" => ["service running"],
         "risk_level" => "low"
@@ -113,7 +116,12 @@ defmodule AgentOps.Agent.RunnerIntegrationTest do
     Process.put({AgentOps.LLM.RunnerIntegrationStub, :plan}, Map.get(opts, :plan))
     Process.put({AgentOps.LLM.RunnerIntegrationStub, :proposal}, Map.get(opts, :proposal))
     Process.put({AgentOps.LLM.RunnerIntegrationStub, :plan_raw}, Map.get(opts, :plan_raw))
-    Process.put({AgentOps.LLM.RunnerIntegrationStub, :plan_repair_raw}, Map.get(opts, :plan_repair_raw))
+
+    Process.put(
+      {AgentOps.LLM.RunnerIntegrationStub, :plan_repair_raw},
+      Map.get(opts, :plan_repair_raw)
+    )
+
     Application.put_env(:agent_ops, :llm_provider, AgentOps.LLM.RunnerIntegrationStub)
   end
 end

@@ -10,10 +10,17 @@ defmodule AgentOps.LLM.RunnerIntegrationStub do
 
   defp pick_response(prompt) do
     case {String.contains?(prompt, "hypothesis"), plan_raw(), plan_repair_raw()} do
-      {true, nil, _} -> Jason.encode!(plan())
-      {true, raw, nil} -> raw
-      {true, raw, repair_raw} -> if String.contains?(prompt, "Return valid JSON only"), do: repair_raw, else: raw
-      {false, _, _} -> Jason.encode!(proposal())
+      {true, nil, _} ->
+        Jason.encode!(plan())
+
+      {true, raw, nil} ->
+        raw
+
+      {true, raw, repair_raw} ->
+        if String.contains?(prompt, "Return valid JSON only"), do: repair_raw, else: raw
+
+      {false, _, _} ->
+        Jason.encode!(proposal())
     end
   end
 

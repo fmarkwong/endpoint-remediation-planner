@@ -26,6 +26,7 @@ defmodule AgentOps.Tools.ScriptsTest do
 
   test "validate_params rejects missing or empty fields" do
     assert {:error, :invalid_params} = Scripts.validate_params("restart_service", %{})
+
     assert {:error, :invalid_params} =
              Scripts.validate_params("restart_service", %{"service" => ""})
   end

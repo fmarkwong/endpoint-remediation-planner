@@ -53,6 +53,7 @@ defmodule AgentOps.Agent.Runner do
       {:ok, run.state["plan"]}
     else
       tool_allowlist = Registry.allowlist()
+
       prompt =
         Prompts.planner_prompt(run.input, endpoint_ids) <>
           "\nAllowed tools: " <> Enum.join(tool_allowlist, ", ") <> "\nUse only these tools."
@@ -116,7 +117,10 @@ defmodule AgentOps.Agent.Runner do
             latency_ms: latency_ms
           })
 
-          Log.info(run.id, step_id(tool_call), "tool completed", %{tool: tool, latency_ms: latency_ms})
+          Log.info(run.id, step_id(tool_call), "tool completed", %{
+            tool: tool,
+            latency_ms: latency_ms
+          })
 
           {:cont, {:ok, acc ++ [%{"tool" => tool, "result" => result}]}}
 
@@ -134,9 +138,11 @@ defmodule AgentOps.Agent.Runner do
     else
       observations_json = observations |> stringify_keys() |> Jason.encode!()
       template_allowlist = Scripts.list_templates() |> Enum.map(& &1.id)
+
       prompt =
         Prompts.proposer_prompt(run.input, observations_json, endpoint_ids) <>
-          "\nAllowed templates: " <> Enum.join(template_allowlist, ", ") <>
+          "\nAllowed templates: " <>
+          Enum.join(template_allowlist, ", ") <>
           "\nUse only these template_id values."
 
       repair_fun = fn instruction ->

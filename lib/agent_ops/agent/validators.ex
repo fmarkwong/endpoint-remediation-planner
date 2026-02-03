@@ -23,9 +23,10 @@ defmodule AgentOps.Agent.Validators do
             {:error, reason}
 
           repair_fun ->
-            repaired = repair_fun.(
-              "Return valid JSON only that matches the required schema. Do not include any prose."
-            )
+            repaired =
+              repair_fun.(
+                "Return valid JSON only that matches the required schema. Do not include any prose."
+              )
 
             validate_with_repair(type, repaired, Keyword.delete(opts, :repair_fun))
         end
@@ -64,11 +65,19 @@ defmodule AgentOps.Agent.Validators do
   defp validate_shape(:proposal, proposal), do: validate_proposal_shape(proposal)
 
   defp validate_semantics(:plan, plan, opts), do: validate_plan_semantics(plan, opts)
-  defp validate_semantics(:proposal, proposal, opts), do: validate_proposal_semantics(proposal, opts)
 
-  defp validate_plan_shape(%{"hypothesis" => hypothesis, "steps" => steps, "stop_conditions" => stop, "risk_level" => risk})
+  defp validate_semantics(:proposal, proposal, opts),
+    do: validate_proposal_semantics(proposal, opts)
+
+  defp validate_plan_shape(%{
+         "hypothesis" => hypothesis,
+         "steps" => steps,
+         "stop_conditions" => stop,
+         "risk_level" => risk
+       })
        when is_binary(hypothesis) and is_list(steps) and is_list(stop) and is_binary(risk) do
-    if Enum.all?(stop, &is_binary/1) and Enum.all?(steps, &valid_step_shape?/1) and risk in @risk_levels do
+    if Enum.all?(stop, &is_binary/1) and Enum.all?(steps, &valid_step_shape?/1) and
+         risk in @risk_levels do
       :ok
     else
       {:error, :invalid_plan_shape}
@@ -77,8 +86,9 @@ defmodule AgentOps.Agent.Validators do
 
   defp validate_plan_shape(_), do: {:error, :invalid_plan_shape}
 
-  defp valid_step_shape?(%{"tool" => tool, "input" => input}) when is_binary(tool) and is_map(input),
-    do: true
+  defp valid_step_shape?(%{"tool" => tool, "input" => input})
+       when is_binary(tool) and is_map(input),
+       do: true
 
   defp valid_step_shape?(_), do: false
 
@@ -92,18 +102,19 @@ defmodule AgentOps.Agent.Validators do
       allowlist != [] and Enum.any?(steps, fn step -> Map.get(step, "tool") not in allowlist end) ->
         {:error, :unknown_tool}
 
-      endpoint_ids != MapSet.new() and Enum.any?(steps, fn step ->
-        case Map.get(step, "input") do
-          %{"endpoint_ids" => ids} when is_list(ids) ->
-            not Enum.all?(ids, &MapSet.member?(endpoint_ids, &1))
+      endpoint_ids != MapSet.new() and
+          Enum.any?(steps, fn step ->
+            case Map.get(step, "input") do
+              %{"endpoint_ids" => ids} when is_list(ids) ->
+                not Enum.all?(ids, &MapSet.member?(endpoint_ids, &1))
 
-          %{endpoint_ids: ids} when is_list(ids) ->
-            not Enum.all?(ids, &MapSet.member?(endpoint_ids, &1))
+              %{endpoint_ids: ids} when is_list(ids) ->
+                not Enum.all?(ids, &MapSet.member?(endpoint_ids, &1))
 
-          _ ->
-            false
-        end
-      end) ->
+              _ ->
+                false
+            end
+          end) ->
         {:error, :invalid_endpoint_ids}
 
       true ->
@@ -114,7 +125,11 @@ defmodule AgentOps.Agent.Validators do
   defp validate_proposal_shape(%{
          "summary" => summary,
          "findings" => findings,
-         "remediation" => %{"template_id" => template_id, "params" => params, "confidence" => confidence}
+         "remediation" => %{
+           "template_id" => template_id,
+           "params" => params,
+           "confidence" => confidence
+         }
        })
        when is_binary(summary) and is_list(findings) and is_binary(template_id) and is_map(params) and
               is_number(confidence) do
