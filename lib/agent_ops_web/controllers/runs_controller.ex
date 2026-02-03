@@ -4,44 +4,48 @@ defmodule AgentOpsWeb.RunsController do
   alias AgentOps
   alias AgentOps.Agent.RunnerJob
 
-  def create(conn, params) do
-    input = Map.get(params, "input") || Map.get(params, :input)
-    mode = Map.get(params, "mode") || Map.get(params, :mode) || "propose"
-    endpoint_ids = Map.get(params, "endpoint_ids") || Map.get(params, :endpoint_ids)
+  def create(conn, %{"input" => input}) when not is_binary(input) or input == "" do
+    conn
+    |> put_status(:bad_request)
+    |> json(%{error: "input_required"})
+  end
 
-    cond do
-      not is_binary(input) or input == "" ->
+  def create(conn, %{"mode" => mode}) when not is_binary(mode) do
+    conn
+    |> put_status(:bad_request)
+    |> json(%{error: "invalid_mode"})
+  end
+
+  def create(conn, %{"input" => input} = params) do
+    mode = Map.get(params, "mode") || "propose"
+    endpoint_ids = Map.get(params, "endpoint_ids")
+
+    resolved_ids = resolve_endpoint_ids(endpoint_ids)
+
+    case AgentOps.create_agent_run(%{
+           input: input,
+           mode: mode,
+           status: :queued,
+           state: %{"endpoint_ids" => resolved_ids}
+         }) do
+      {:ok, run} ->
+        {:ok, _job} = Oban.insert(RunnerJob.new(%{"run_id" => run.id}))
+
+        conn
+        |> put_status(:accepted)
+        |> json(%{run_id: run.id, status: "queued"})
+
+      {:error, _changeset} ->
         conn
         |> put_status(:bad_request)
-        |> json(%{error: "input_required"})
-
-      not is_binary(mode) ->
-        conn
-        |> put_status(:bad_request)
-        |> json(%{error: "invalid_mode"})
-
-      true ->
-        resolved_ids = resolve_endpoint_ids(endpoint_ids)
-
-        case AgentOps.create_agent_run(%{
-               input: input,
-               mode: mode,
-               status: :queued,
-               state: %{"endpoint_ids" => resolved_ids}
-             }) do
-          {:ok, run} ->
-            {:ok, _job} = Oban.insert(RunnerJob.new(%{"run_id" => run.id}))
-
-            conn
-            |> put_status(:accepted)
-            |> json(%{run_id: run.id, status: "queued"})
-
-          {:error, _changeset} ->
-            conn
-            |> put_status(:bad_request)
-            |> json(%{error: "invalid_run"})
-        end
+        |> json(%{error: "invalid_run"})
     end
+  end
+
+  def create(conn, _params) do
+    conn
+    |> put_status(:bad_request)
+    |> json(%{error: "input_required"})
   end
 
   def show(conn, %{"id" => id}) do
