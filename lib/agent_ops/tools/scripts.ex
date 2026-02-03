@@ -40,6 +40,9 @@ defmodule AgentOps.Tools.Scripts do
               not valid_service_param?(params) ->
             {:error, :invalid_params}
 
+          template_id == "reinstall_application" and not valid_app_name_param?(params) ->
+            {:error, :invalid_params}
+
           true ->
             :ok
         end
@@ -56,5 +59,10 @@ defmodule AgentOps.Tools.Scripts do
   defp valid_service_param?(params) do
     service = Map.get(params, "service") || Map.get(params, :service)
     is_binary(service) and service in @allowed_services
+  end
+
+  defp valid_app_name_param?(params) do
+    app_name = Map.get(params, "app_name") || Map.get(params, :app_name)
+    is_binary(app_name) and app_name == "chrome"
   end
 end

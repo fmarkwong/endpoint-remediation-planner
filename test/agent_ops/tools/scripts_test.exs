@@ -36,6 +36,11 @@ defmodule AgentOps.Tools.ScriptsTest do
              Scripts.validate_params("enable_windows_service", %{"service" => "chrome"})
   end
 
+  test "validate_params rejects invalid app_name values" do
+    assert {:error, :invalid_params} =
+             Scripts.validate_params("reinstall_application", %{"app_name" => "firefox"})
+  end
+
   test "validate_params rejects extra params" do
     assert {:error, :invalid_params} =
              Scripts.validate_params("enable_windows_service", %{
