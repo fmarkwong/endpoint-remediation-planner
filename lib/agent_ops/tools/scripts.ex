@@ -15,6 +15,8 @@ defmodule AgentOps.Tools.Scripts do
     end)
   end
 
+  def allowed_services, do: @allowed_services
+
   def valid_template?(template_id) when is_binary(template_id) do
     Map.has_key?(@templates, template_id)
   end

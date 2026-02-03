@@ -86,6 +86,7 @@ defmodule AgentOps.Agent.Runner do
              Validators.validate_plan(content,
                tool_allowlist: tool_allowlist,
                endpoint_ids: endpoint_ids,
+               allowed_services: Scripts.allowed_services(),
                repair_fun: repair_fun
              ) do
         latency_ms = System.monotonic_time(:millisecond) - started_at

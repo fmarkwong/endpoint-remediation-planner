@@ -95,6 +95,7 @@ defmodule AgentOps.Agent.Validators do
   defp validate_plan_semantics(plan, opts) do
     allowlist = Keyword.get(opts, :tool_allowlist, [])
     endpoint_ids = MapSet.new(Keyword.get(opts, :endpoint_ids, []))
+    allowed_services = Keyword.get(opts, :allowed_services, [])
 
     steps = Map.get(plan, "steps", [])
 
@@ -116,6 +117,23 @@ defmodule AgentOps.Agent.Validators do
             end
           end) ->
         {:error, :invalid_endpoint_ids}
+
+      allowed_services != [] and
+          Enum.any?(steps, fn step ->
+            case step do
+              %{"tool" => "get_service_status", "input" => %{"service_name" => name}}
+              when is_binary(name) ->
+                name not in allowed_services
+
+              %{"tool" => "get_service_status", "input" => %{service_name: name}}
+              when is_binary(name) ->
+                name not in allowed_services
+
+              _ ->
+                false
+            end
+          end) ->
+        {:error, :invalid_service_name}
 
       true ->
         :ok

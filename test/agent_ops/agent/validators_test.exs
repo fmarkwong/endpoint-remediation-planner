@@ -57,6 +57,28 @@ defmodule AgentOps.Agent.ValidatorsTest do
              )
   end
 
+  test "validate_plan rejects invalid service_name" do
+    json =
+      Jason.encode!(%{
+        "hypothesis" => "bad service",
+        "steps" => [
+          %{
+            "tool" => "get_service_status",
+            "input" => %{"endpoint_ids" => [1], "service_name" => "bits"}
+          }
+        ],
+        "stop_conditions" => [],
+        "risk_level" => "low"
+      })
+
+    assert {:error, :invalid_service_name} =
+             Validators.validate_plan(json,
+               tool_allowlist: @tool_allowlist,
+               endpoint_ids: [1],
+               allowed_services: ["gupdate", "wuauserv"]
+             )
+  end
+
   test "validate_plan repairs invalid json once" do
     repair_fun = fn _instruction ->
       Jason.encode!(%{
