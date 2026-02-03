@@ -147,6 +147,23 @@ defmodule AgentOps.Agent.RunnerIntegrationTest do
     Application.put_env(:agent_ops, :llm_provider, AgentOps.LLM.StubClient)
   end
 
+  test "running run is a no-op" do
+    {:ok, run} =
+      AgentOps.create_agent_run(%{
+        input: "Investigate",
+        mode: :propose,
+        status: :running,
+        state: %{"endpoint_ids" => [1]}
+      })
+
+    AgentOps.create_agent_step(%{agent_run_id: run.id, step_type: :plan, output: %{"ok" => true}})
+
+    assert :ok = Runner.run(run.id)
+
+    steps = AgentOps.list_agent_steps_for_run(run.id)
+    assert length(steps) == 1
+  end
+
   defp stub_llm(opts) do
     Process.put({AgentOps.LLM.RunnerIntegrationStub, :plan}, Map.get(opts, :plan))
     Process.put({AgentOps.LLM.RunnerIntegrationStub, :proposal}, Map.get(opts, :proposal))

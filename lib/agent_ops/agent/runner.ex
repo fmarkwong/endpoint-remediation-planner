@@ -2,48 +2,61 @@ defmodule AgentOps.Agent.Runner do
   @moduledoc false
 
   alias AgentOps
+  alias AgentOps.AgentRun
   alias AgentOps.Agent.Prompts
   alias AgentOps.Agent.Validators
   alias AgentOps.LLM.Client
   alias AgentOps.Observability.Log
+  alias AgentOps.Repo
   alias AgentOps.Tools.Registry
   alias AgentOps.Tools.Scripts
+
+  import Ecto.Query, warn: false
 
   @max_steps 5
 
   def run(run_id) when is_integer(run_id) do
     run = AgentOps.get_agent_run!(run_id)
 
-    if run.status in [:succeeded, :failed] do
-      :ok
-    else
-      AgentOps.update_agent_run(run, %{status: :running})
+    case run.status do
+      status when status in [:succeeded, :failed] ->
+        :ok
 
-      state = run.state || %{}
-      endpoint_ids = state["endpoint_ids"] || state[:endpoint_ids] || []
+      :running ->
+        :ok
 
-      with {:ok, plan} <- maybe_plan(run, endpoint_ids),
-           {:ok, observations} <- execute_steps(run, plan),
-           {:ok, _proposal} <- maybe_propose(run, observations, endpoint_ids) do
-        AgentOps.create_agent_step(%{
-          agent_run_id: run.id,
-          step_type: :final,
-          output: %{"status" => "succeeded"}
-        })
+      :queued ->
+        case start_run(run) do
+          :ok ->
+            state = run.state || %{}
+            endpoint_ids = state["endpoint_ids"] || state[:endpoint_ids] || []
 
-        AgentOps.update_agent_run(run, %{status: :succeeded})
-        {:ok, :succeeded}
-      else
-        {:error, reason} ->
-          AgentOps.create_agent_step(%{
-            agent_run_id: run.id,
-            step_type: :error,
-            error: inspect(reason)
-          })
+            with {:ok, plan} <- maybe_plan(run, endpoint_ids),
+                 {:ok, observations} <- execute_steps(run, plan),
+                 {:ok, _proposal} <- maybe_propose(run, observations, endpoint_ids) do
+              AgentOps.create_agent_step(%{
+                agent_run_id: run.id,
+                step_type: :final,
+                output: %{"status" => "succeeded"}
+              })
 
-          AgentOps.update_agent_run(run, %{status: :failed})
-          {:error, reason}
-      end
+              AgentOps.update_agent_run(run, %{status: :succeeded})
+              {:ok, :succeeded}
+            else
+              {:error, reason} ->
+                AgentOps.create_agent_step(%{
+                  agent_run_id: run.id,
+                  step_type: :error,
+                  error: inspect(reason)
+                })
+
+                AgentOps.update_agent_run(run, %{status: :failed})
+                {:error, reason}
+            end
+
+          :already_started ->
+            :ok
+        end
     end
   end
 
@@ -91,6 +104,14 @@ defmodule AgentOps.Agent.Runner do
         {:ok, plan}
       end
     end
+  end
+
+  defp start_run(run) do
+    {count, _} =
+      from(r in AgentRun, where: r.id == ^run.id and r.status == :queued)
+      |> Repo.update_all(set: [status: :running])
+
+    if count == 1, do: :ok, else: :already_started
   end
 
   defp execute_steps(run, %{"steps" => steps}) when is_list(steps) do
