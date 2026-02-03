@@ -48,6 +48,41 @@ defmodule AgentOps.Agent.RunnerIntegrationTest do
     Application.put_env(:agent_ops, :llm_provider, AgentOps.LLM.StubClient)
   end
 
+  test "nil state does not crash" do
+    stub_llm(%{
+      plan: %{
+        "hypothesis" => "no-op",
+        "steps" => [],
+        "stop_conditions" => [],
+        "risk_level" => "low"
+      },
+      proposal: %{
+        "summary" => "no-op",
+        "findings" => ["no issues"],
+        "remediation" => %{
+          "template_id" => "enable_windows_service",
+          "params" => %{"service" => "gupdate"},
+          "confidence" => 0.6
+        }
+      }
+    })
+
+    {:ok, run} =
+      AgentOps.create_agent_run(%{
+        input: "Investigate",
+        mode: :propose
+      })
+
+    assert {:ok, :succeeded} = Runner.run(run.id)
+
+    steps = AgentOps.list_agent_steps_for_run(run.id)
+    assert Enum.any?(steps, &(&1.step_type == :plan))
+    assert Enum.any?(steps, &(&1.step_type == :proposal))
+    assert Enum.any?(steps, &(&1.step_type == :final))
+
+    Application.put_env(:agent_ops, :llm_provider, AgentOps.LLM.StubClient)
+  end
+
   test "unknown tool fails closed" do
     stub_llm(%{
       plan: %{

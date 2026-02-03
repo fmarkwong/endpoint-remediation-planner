@@ -19,7 +19,8 @@ defmodule AgentOps.Agent.Runner do
     else
       AgentOps.update_agent_run(run, %{status: :running})
 
-      endpoint_ids = run.state["endpoint_ids"] || run.state[:endpoint_ids] || []
+      state = run.state || %{}
+      endpoint_ids = state["endpoint_ids"] || state[:endpoint_ids] || []
 
       with {:ok, plan} <- maybe_plan(run, endpoint_ids),
            {:ok, observations} <- execute_steps(run, plan),
@@ -49,8 +50,10 @@ defmodule AgentOps.Agent.Runner do
   def run(_run_id), do: {:error, :invalid_run_id}
 
   defp maybe_plan(run, endpoint_ids) do
-    if run.state["plan"] do
-      {:ok, run.state["plan"]}
+    state = run.state || %{}
+
+    if state["plan"] do
+      {:ok, state["plan"]}
     else
       tool_allowlist = Registry.allowlist()
 
