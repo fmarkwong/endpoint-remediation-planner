@@ -69,6 +69,7 @@ defmodule AgentOps.Agent.Runner do
       {:ok, state["plan"]}
     else
       tool_allowlist = Registry.allowlist()
+      endpoint_tools = Registry.endpoint_tools()
 
       prompt =
         Prompts.planner_prompt(run.input, endpoint_ids) <>
@@ -85,6 +86,7 @@ defmodule AgentOps.Agent.Runner do
            {:ok, plan} <-
              Validators.validate_plan(content,
                tool_allowlist: tool_allowlist,
+               required_endpoint_tools: endpoint_tools,
                endpoint_ids: endpoint_ids,
                allowed_services: Scripts.allowed_services(),
                repair_fun: repair_fun

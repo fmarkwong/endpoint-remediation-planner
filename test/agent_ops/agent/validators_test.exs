@@ -79,6 +79,23 @@ defmodule AgentOps.Agent.ValidatorsTest do
              )
   end
 
+  test "validate_plan rejects missing endpoint_ids for required tools" do
+    json =
+      Jason.encode!(%{
+        "hypothesis" => "missing ids",
+        "steps" => [%{"tool" => "get_installed_software", "input" => %{}}],
+        "stop_conditions" => [],
+        "risk_level" => "low"
+      })
+
+    assert {:error, :missing_endpoint_ids} =
+             Validators.validate_plan(json,
+               tool_allowlist: @tool_allowlist,
+               required_endpoint_tools: ["get_installed_software"],
+               endpoint_ids: [1]
+             )
+  end
+
   test "validate_plan repairs invalid json once" do
     repair_fun = fn _instruction ->
       Jason.encode!(%{

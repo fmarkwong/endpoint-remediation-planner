@@ -6,11 +6,18 @@ defmodule AgentOps.Agent.RunnerJobTest do
   test "perform executes run" do
     stub_llm()
 
+    endpoint =
+      %AgentOps.Endpoint{}
+      |> AgentOps.Endpoint.changeset(%{hostname: "test-1"})
+      |> AgentOps.Repo.insert!()
+
+    Process.put({AgentOps.LLM.TestRunnerStub, :endpoint_ids}, [endpoint.id])
+
     {:ok, run} =
       AgentOps.create_agent_run(%{
         input: "Chrome updates failing",
         mode: :propose,
-        state: %{"endpoint_ids" => []}
+        state: %{"endpoint_ids" => [endpoint.id]}
       })
 
     {:ok, _} = RunnerJob.perform(%Oban.Job{args: %{"run_id" => run.id}})
@@ -18,6 +25,8 @@ defmodule AgentOps.Agent.RunnerJobTest do
 
     assert Enum.any?(steps, &(&1.step_type == :plan))
     assert Enum.any?(steps, &(&1.step_type == :proposal))
+
+    Process.delete({AgentOps.LLM.TestRunnerStub, :endpoint_ids})
   end
 
   defp stub_llm do

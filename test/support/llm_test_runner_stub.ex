@@ -4,6 +4,8 @@ defmodule AgentOps.LLM.TestRunnerStub do
   @behaviour AgentOps.LLM.Client
 
   def complete(prompt, _opts) do
+    endpoint_ids = Process.get({__MODULE__, :endpoint_ids}, [])
+
     if String.contains?(prompt, "hypothesis") do
       {:ok,
        %{
@@ -11,10 +13,13 @@ defmodule AgentOps.LLM.TestRunnerStub do
            Jason.encode!(%{
              "hypothesis" => "gupdate disabled",
              "steps" => [
-               %{"tool" => "get_installed_software", "input" => %{"endpoint_ids" => []}},
+               %{
+                 "tool" => "get_installed_software",
+                 "input" => %{"endpoint_ids" => endpoint_ids}
+               },
                %{
                  "tool" => "get_service_status",
-                 "input" => %{"endpoint_ids" => [], "service_name" => "gupdate"}
+                 "input" => %{"endpoint_ids" => endpoint_ids, "service_name" => "gupdate"}
                }
              ],
              "stop_conditions" => ["service running"],

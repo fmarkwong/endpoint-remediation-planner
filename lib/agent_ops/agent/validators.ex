@@ -96,6 +96,7 @@ defmodule AgentOps.Agent.Validators do
     allowlist = Keyword.get(opts, :tool_allowlist, [])
     endpoint_ids = MapSet.new(Keyword.get(opts, :endpoint_ids, []))
     allowed_services = Keyword.get(opts, :allowed_services, [])
+    required_endpoint_tools = Keyword.get(opts, :required_endpoint_tools, [])
 
     steps = Map.get(plan, "steps", [])
 
@@ -118,6 +119,13 @@ defmodule AgentOps.Agent.Validators do
           end) ->
         {:error, :invalid_endpoint_ids}
 
+      required_endpoint_tools != [] and
+          Enum.any?(steps, fn step ->
+            tool = Map.get(step, "tool")
+            tool in required_endpoint_tools and not valid_endpoint_ids_input?(step)
+          end) ->
+        {:error, :missing_endpoint_ids}
+
       allowed_services != [] and
           Enum.any?(steps, fn step ->
             case step do
@@ -139,6 +147,17 @@ defmodule AgentOps.Agent.Validators do
         :ok
     end
   end
+
+  defp valid_endpoint_ids_input?(%{"input" => input}) when is_map(input) do
+    endpoint_ids = Map.get(input, "endpoint_ids") || Map.get(input, :endpoint_ids)
+
+    case endpoint_ids do
+      ids when is_list(ids) and ids != [] -> Enum.all?(ids, &is_integer/1)
+      _ -> false
+    end
+  end
+
+  defp valid_endpoint_ids_input?(_), do: false
 
   defp validate_proposal_shape(%{
          "summary" => summary,

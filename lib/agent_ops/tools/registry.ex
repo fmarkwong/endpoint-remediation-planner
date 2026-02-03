@@ -12,6 +12,10 @@ defmodule AgentOps.Tools.Registry do
     Map.keys(@tools)
   end
 
+  def endpoint_tools do
+    ["get_installed_software", "get_service_status"]
+  end
+
   def execute(tool_name, input) when is_binary(tool_name) and is_map(input) do
     case Map.get(@tools, tool_name) do
       nil ->
