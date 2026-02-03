@@ -1,5 +1,10 @@
 defmodule AgentOps.Agent.Runner do
-  @moduledoc false
+  @moduledoc """
+  Orchestrates a single remediation run by planning, executing tools,
+  and optionally proposing a remediation.
+
+  Runs are fail-closed: any error records an error step and marks the run failed.
+  """
 
   alias AgentOps
   alias AgentOps.AgentRun
@@ -110,6 +115,7 @@ defmodule AgentOps.Agent.Runner do
   end
 
   defp start_run(run) do
+    # Atomically claim queued runs to avoid duplicate processing.
     {count, _} =
       from(r in AgentRun, where: r.id == ^run.id and r.status == :queued)
       |> Repo.update_all(set: [status: :running])

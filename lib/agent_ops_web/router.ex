@@ -1,4 +1,7 @@
 defmodule AgentOpsWeb.Router do
+  @moduledoc """
+  HTTP routes for API and health endpoints.
+  """
   use AgentOpsWeb, :router
 
   pipeline :api do

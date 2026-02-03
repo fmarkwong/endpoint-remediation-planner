@@ -1,5 +1,7 @@
 defmodule AgentOps.Observability.Log do
-  @moduledoc false
+  @moduledoc """
+  Structured logging helpers for run/step metadata.
+  """
 
   require Logger
 

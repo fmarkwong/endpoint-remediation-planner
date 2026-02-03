@@ -1,4 +1,7 @@
 defmodule AgentOps.AgentStep do
+  @moduledoc """
+  Schema for a single step in an agent run timeline.
+  """
   use Ecto.Schema
   import Ecto.Changeset
 

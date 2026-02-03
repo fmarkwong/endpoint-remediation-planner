@@ -1,5 +1,7 @@
 defmodule AgentOps.Tools.Registry do
-  @moduledoc false
+  @moduledoc """
+  Registry for allowlisted inventory tools used by the planner.
+  """
 
   alias AgentOps.Tools.Inventory
 

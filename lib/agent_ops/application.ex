@@ -1,7 +1,9 @@
 defmodule AgentOps.Application do
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
-  @moduledoc false
+  @moduledoc """
+  Application supervision tree for AgentOps.
+  """
 
   use Application
 

@@ -1,4 +1,7 @@
 defmodule AgentOpsWeb.HealthController do
+  @moduledoc """
+  Simple health check endpoint.
+  """
   use AgentOpsWeb, :controller
 
   def index(conn, _params) do

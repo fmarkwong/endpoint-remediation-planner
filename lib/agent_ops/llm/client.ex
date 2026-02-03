@@ -1,5 +1,7 @@
 defmodule AgentOps.LLM.Client do
-  @moduledoc false
+  @moduledoc """
+  Behaviour and dispatch layer for LLM providers.
+  """
 
   @callback complete(String.t(), Keyword.t()) ::
               {:ok, %{content: String.t(), usage: map()}} | {:error, term()}

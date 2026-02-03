@@ -1,5 +1,7 @@
 defmodule AgentOps.Agent.Validators do
-  @moduledoc false
+  @moduledoc """
+  Validates LLM outputs for plan and proposal steps, with optional repair.
+  """
 
   @risk_levels ["low", "medium", "high"]
 

@@ -1,5 +1,7 @@
 defmodule AgentOps.Agent.Prompts do
-  @moduledoc false
+  @moduledoc """
+  Builds structured prompts for the planner and proposer LLM calls.
+  """
 
   @prompt_version "v1"
 

@@ -1,5 +1,7 @@
 defmodule AgentOps.Tools.Inventory do
-  @moduledoc false
+  @moduledoc """
+  Read-only inventory queries over seeded endpoint data.
+  """
 
   import Ecto.Query, warn: false
 

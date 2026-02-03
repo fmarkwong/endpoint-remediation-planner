@@ -1,4 +1,7 @@
 defmodule AgentOpsWeb.Endpoint do
+  @moduledoc """
+  Phoenix endpoint for HTTP, static assets, and LiveView sockets.
+  """
   use Phoenix.Endpoint, otp_app: :agent_ops
 
   # The session will be stored in the cookie and signed,

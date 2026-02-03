@@ -1,4 +1,7 @@
 defmodule AgentOpsWeb.Telemetry do
+  @moduledoc """
+  Telemetry metrics and polling for Phoenix and Ecto.
+  """
   use Supervisor
   import Telemetry.Metrics
 

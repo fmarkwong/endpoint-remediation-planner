@@ -1,4 +1,7 @@
 defmodule AgentOps.AgentRun do
+  @moduledoc """
+  Schema for a single remediation run and its persisted state.
+  """
   use Ecto.Schema
   import Ecto.Changeset
 

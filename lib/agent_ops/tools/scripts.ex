@@ -1,5 +1,7 @@
 defmodule AgentOps.Tools.Scripts do
-  @moduledoc false
+  @moduledoc """
+  Remediation template registry and parameter validation.
+  """
 
   @allowed_services ["gupdate", "wuauserv"]
 

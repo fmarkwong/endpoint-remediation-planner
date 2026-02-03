@@ -1,4 +1,7 @@
 defmodule AgentOpsWeb.RunsController do
+  @moduledoc """
+  API endpoints for creating runs and fetching their timelines.
+  """
   use AgentOpsWeb, :controller
 
   alias AgentOps

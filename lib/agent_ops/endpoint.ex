@@ -1,4 +1,7 @@
 defmodule AgentOps.Endpoint do
+  @moduledoc """
+  Schema representing a managed endpoint and its inventory data.
+  """
   use Ecto.Schema
   import Ecto.Changeset
 

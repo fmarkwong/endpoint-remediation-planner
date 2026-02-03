@@ -1,5 +1,7 @@
 defmodule AgentOps.LLM.OpenAIClient do
-  @moduledoc false
+  @moduledoc """
+  OpenAI Chat Completions client with JSON-only responses.
+  """
 
   @behaviour AgentOps.LLM.Client
 
