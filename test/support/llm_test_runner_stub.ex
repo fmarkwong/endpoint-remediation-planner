@@ -1,5 +1,7 @@
 defmodule AgentOps.LLM.TestRunnerStub do
-  @moduledoc false
+  @moduledoc """
+  Stub LLM client for runner job tests with deterministic plan/proposal outputs.
+  """
 
   @behaviour AgentOps.LLM.Client
 

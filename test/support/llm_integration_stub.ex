@@ -1,5 +1,7 @@
 defmodule AgentOps.LLM.RunnerIntegrationStub do
-  @moduledoc false
+  @moduledoc """
+  Stub LLM client for integration tests with configurable plan/proposal payloads.
+  """
 
   @behaviour AgentOps.LLM.Client
 

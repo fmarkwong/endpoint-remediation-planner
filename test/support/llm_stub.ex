@@ -1,5 +1,7 @@
 defmodule AgentOps.LLM.StubClient do
-  @moduledoc false
+  @moduledoc """
+  Minimal stub LLM client for tests that only need JSON shape validation.
+  """
 
   @behaviour AgentOps.LLM.Client
 
