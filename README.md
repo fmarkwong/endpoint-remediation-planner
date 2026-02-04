@@ -148,7 +148,8 @@ Observability:
 The API is JSON-only (`/api/runs`, `/api/runs/:id`, `/healthz`) and returns full step timelines for auditability.
 
 ## Example prompts
-These show the full prompt strings constructed for the planner and proposer (with sample inputs).
+These show the full prompt strings constructed for the planner and proposer using the input:
+"Chrome updates failing on endpoints 1-3. Investigate and propose remediation."
 
 Planner prompt:
 ```
