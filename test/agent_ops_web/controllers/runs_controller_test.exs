@@ -38,7 +38,7 @@ defmodule AgentOpsWeb.RunsControllerTest do
         state: %{"endpoint_ids" => []}
       })
 
-    AgentOps.create_agent_step(%{agent_run_id: run.id, step_type: :plan, output: %{"ok" => true}})
+    AgentOps.create_agent_step(%{agent_run_id: run.id, step_type: :investigate, output: %{"ok" => true}})
 
     conn = get(conn, ~p"/api/runs/#{run.id}")
     response = json_response(conn, 200)

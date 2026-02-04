@@ -1,6 +1,6 @@
 defmodule AgentOps.Agent.Runner do
   @moduledoc """
-  Orchestrates a single remediation run by planning, executing tools,
+  Orchestrates a single remediation run by investigating, executing tools,
   and optionally proposing a remediation.
 
   Runs are fail-closed: any error records an error step and marks the run failed.
@@ -37,8 +37,8 @@ defmodule AgentOps.Agent.Runner do
             state = run.state || %{}
             endpoint_ids = state["endpoint_ids"] || state[:endpoint_ids] || []
 
-            with {:ok, plan} <- maybe_plan(run, endpoint_ids),
-                 {:ok, observations} <- execute_steps(run, plan),
+            with {:ok, investigation} <- maybe_investigate(run, endpoint_ids),
+                 {:ok, observations} <- execute_steps(run, investigation),
                  {:ok, _proposal} <- maybe_propose(run, observations, endpoint_ids) do
               AgentOps.create_agent_step(%{
                 agent_run_id: run.id,
@@ -69,17 +69,17 @@ defmodule AgentOps.Agent.Runner do
   @spec run(term()) :: {:error, :invalid_run_id}
   def run(_run_id), do: {:error, :invalid_run_id}
 
-  defp maybe_plan(run, endpoint_ids) do
+  defp maybe_investigate(run, endpoint_ids) do
     state = run.state || %{}
 
-    if state["plan"] do
-      {:ok, state["plan"]}
+    if state["investigation"] || state["plan"] do
+      {:ok, state["investigation"] || state["plan"]}
     else
       tool_allowlist = Registry.allowlist()
       endpoint_tools = Registry.endpoint_tools()
 
       prompt =
-        Prompts.planner_prompt(run.input, endpoint_ids) <>
+        Prompts.investigator_prompt(run.input, endpoint_ids) <>
           "\nAllowed tools: " <> Enum.join(tool_allowlist, ", ") <> "\nUse only these tools."
 
       repair_fun = fn instruction ->
@@ -90,8 +90,8 @@ defmodule AgentOps.Agent.Runner do
       started_at = System.monotonic_time(:millisecond)
 
       with {:ok, %{content: content, usage: usage}} <- Client.complete(prompt, temperature: 0),
-           {:ok, plan} <-
-             Validators.validate_plan(content,
+           {:ok, investigation} <-
+             Validators.validate_investigation(content,
                tool_allowlist: tool_allowlist,
                required_endpoint_tools: endpoint_tools,
                endpoint_ids: endpoint_ids,
@@ -102,16 +102,16 @@ defmodule AgentOps.Agent.Runner do
 
         AgentOps.create_agent_step(%{
           agent_run_id: run.id,
-          step_type: :plan,
-          output: plan,
+          step_type: :investigate,
+          output: investigation,
           latency_ms: latency_ms,
           token_usage: usage
         })
 
-        Log.info(run.id, nil, "planner completed", %{latency_ms: latency_ms})
+        Log.info(run.id, nil, "investigator completed", %{latency_ms: latency_ms})
 
-        AgentOps.update_agent_run(run, %{state: Map.put(run.state || %{}, "plan", plan)})
-        {:ok, plan}
+        AgentOps.update_agent_run(run, %{state: Map.put(run.state || %{}, "investigation", investigation)})
+        {:ok, investigation}
       end
     end
   end
@@ -165,7 +165,7 @@ defmodule AgentOps.Agent.Runner do
     end)
   end
 
-  defp execute_steps(_run, _plan), do: {:error, :invalid_plan}
+  defp execute_steps(_run, _investigation), do: {:error, :invalid_investigation}
 
   defp maybe_propose(run, observations, endpoint_ids) do
     if run.mode == :analyze_only do

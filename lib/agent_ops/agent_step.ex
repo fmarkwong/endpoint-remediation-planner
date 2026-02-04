@@ -20,7 +20,7 @@ defmodule AgentOps.AgentStep do
              :inserted_at
            ]}
 
-  @step_types [:plan, :tool_call, :observation, :proposal, :final, :error]
+  @step_types [:investigate, :tool_call, :observation, :proposal, :final, :error]
 
   schema "agent_steps" do
     field :step_type, Ecto.Enum, values: @step_types

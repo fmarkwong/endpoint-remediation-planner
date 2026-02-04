@@ -1,6 +1,6 @@
 defmodule AgentOps.LLM.RunnerIntegrationStub do
   @moduledoc """
-  Stub LLM client for integration tests with configurable plan/proposal payloads.
+  Stub LLM client for integration tests with configurable investigation/proposal payloads.
   """
 
   @behaviour AgentOps.LLM.Client
@@ -11,9 +11,9 @@ defmodule AgentOps.LLM.RunnerIntegrationStub do
   end
 
   defp pick_response(prompt) do
-    case {String.contains?(prompt, "hypothesis"), plan_raw(), plan_repair_raw()} do
+    case {String.contains?(prompt, "hypothesis"), investigation_raw(), investigation_repair_raw()} do
       {true, nil, _} ->
-        Jason.encode!(plan())
+        Jason.encode!(investigation())
 
       {true, raw, nil} ->
         raw
@@ -26,10 +26,10 @@ defmodule AgentOps.LLM.RunnerIntegrationStub do
     end
   end
 
-  defp plan do
-    case Process.get({__MODULE__, :plan}) do
+  defp investigation do
+    case Process.get({__MODULE__, :investigation}) do
       nil -> %{}
-      plan -> plan
+      investigation -> investigation
     end
   end
 
@@ -40,11 +40,11 @@ defmodule AgentOps.LLM.RunnerIntegrationStub do
     end
   end
 
-  defp plan_raw do
-    Process.get({__MODULE__, :plan_raw})
+  defp investigation_raw do
+    Process.get({__MODULE__, :investigation_raw})
   end
 
-  defp plan_repair_raw do
-    Process.get({__MODULE__, :plan_repair_raw})
+  defp investigation_repair_raw do
+    Process.get({__MODULE__, :investigation_repair_raw})
   end
 end

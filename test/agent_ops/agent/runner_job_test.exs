@@ -23,7 +23,7 @@ defmodule AgentOps.Agent.RunnerJobTest do
     {:ok, _} = RunnerJob.perform(%Oban.Job{args: %{"run_id" => run.id}})
     steps = AgentOps.list_agent_steps_for_run(run.id)
 
-    assert Enum.any?(steps, &(&1.step_type == :plan))
+    assert Enum.any?(steps, &(&1.step_type == :investigate))
     assert Enum.any?(steps, &(&1.step_type == :proposal))
 
     Process.delete({AgentOps.LLM.TestRunnerStub, :endpoint_ids})

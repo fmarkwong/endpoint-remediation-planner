@@ -1,13 +1,13 @@
 defmodule AgentOps.Agent.Validators do
   @moduledoc """
-  Validates LLM outputs for plan and proposal steps, with optional repair.
+  Validates LLM outputs for investigation and proposal steps, with optional repair.
   """
 
   @risk_levels ["low", "medium", "high"]
 
-  @spec validate_plan(String.t(), Keyword.t()) :: {:ok, map()} | {:error, term()}
-  def validate_plan(raw, opts \\ []) when is_binary(raw) do
-    validate_with_repair(:plan, raw, opts)
+  @spec validate_investigation(String.t(), Keyword.t()) :: {:ok, map()} | {:error, term()}
+  def validate_investigation(raw, opts \\ []) when is_binary(raw) do
+    validate_with_repair(:investigation, raw, opts)
   end
 
   @spec validate_proposal(String.t(), Keyword.t()) :: {:ok, map()} | {:error, term()}
@@ -65,15 +65,17 @@ defmodule AgentOps.Agent.Validators do
     end
   end
 
-  defp validate_shape(:plan, plan), do: validate_plan_shape(plan)
+  defp validate_shape(:investigation, investigation),
+    do: validate_investigation_shape(investigation)
   defp validate_shape(:proposal, proposal), do: validate_proposal_shape(proposal)
 
-  defp validate_semantics(:plan, plan, opts), do: validate_plan_semantics(plan, opts)
+  defp validate_semantics(:investigation, investigation, opts),
+    do: validate_investigation_semantics(investigation, opts)
 
   defp validate_semantics(:proposal, proposal, opts),
     do: validate_proposal_semantics(proposal, opts)
 
-  defp validate_plan_shape(%{
+  defp validate_investigation_shape(%{
          "hypothesis" => hypothesis,
          "steps" => steps,
          "stop_conditions" => stop,
@@ -84,11 +86,11 @@ defmodule AgentOps.Agent.Validators do
          risk in @risk_levels do
       :ok
     else
-      {:error, :invalid_plan_shape}
+      {:error, :invalid_investigation_shape}
     end
   end
 
-  defp validate_plan_shape(_), do: {:error, :invalid_plan_shape}
+  defp validate_investigation_shape(_), do: {:error, :invalid_investigation_shape}
 
   defp valid_step_shape?(%{"tool" => tool, "input" => input})
        when is_binary(tool) and is_map(input),
@@ -96,13 +98,13 @@ defmodule AgentOps.Agent.Validators do
 
   defp valid_step_shape?(_), do: false
 
-  defp validate_plan_semantics(plan, opts) do
+  defp validate_investigation_semantics(investigation, opts) do
     allowlist = Keyword.get(opts, :tool_allowlist, [])
     endpoint_ids = MapSet.new(Keyword.get(opts, :endpoint_ids, []))
     allowed_services = Keyword.get(opts, :allowed_services, [])
     required_endpoint_tools = Keyword.get(opts, :required_endpoint_tools, [])
 
-    steps = Map.get(plan, "steps", [])
+    steps = Map.get(investigation, "steps", [])
 
     cond do
       allowlist != [] and Enum.any?(steps, fn step -> Map.get(step, "tool") not in allowlist end) ->
@@ -123,7 +125,7 @@ defmodule AgentOps.Agent.Validators do
           end) ->
         {:error, :invalid_endpoint_ids}
 
-      required_endpoint_tools != [] and
+      required_endpoint_tools != [] and endpoint_ids != MapSet.new() and
           Enum.any?(steps, fn step ->
             tool = Map.get(step, "tool")
             tool in required_endpoint_tools and not valid_endpoint_ids_input?(step)

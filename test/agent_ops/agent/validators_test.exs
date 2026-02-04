@@ -6,7 +6,7 @@ defmodule AgentOps.Agent.ValidatorsTest do
   @tool_allowlist ["get_installed_software", "get_service_status"]
   @template_allowlist ["enable_windows_service", "reinstall_application"]
 
-  test "validate_plan accepts valid plan" do
+  test "validate_investigation accepts valid investigation" do
     json =
       Jason.encode!(%{
         "hypothesis" => "gupdate disabled",
@@ -22,13 +22,13 @@ defmodule AgentOps.Agent.ValidatorsTest do
       })
 
     assert {:ok, _} =
-             Validators.validate_plan(json,
+             Validators.validate_investigation(json,
                tool_allowlist: @tool_allowlist,
                endpoint_ids: [1, 2, 3]
              )
   end
 
-  test "validate_plan rejects unknown tool" do
+  test "validate_investigation rejects unknown tool" do
     json =
       Jason.encode!(%{
         "hypothesis" => "unknown tool",
@@ -38,10 +38,10 @@ defmodule AgentOps.Agent.ValidatorsTest do
       })
 
     assert {:error, :unknown_tool} =
-             Validators.validate_plan(json, tool_allowlist: @tool_allowlist)
+             Validators.validate_investigation(json, tool_allowlist: @tool_allowlist)
   end
 
-  test "validate_plan rejects endpoint_ids outside run" do
+  test "validate_investigation rejects endpoint_ids outside run" do
     json =
       Jason.encode!(%{
         "hypothesis" => "out of scope",
@@ -51,13 +51,13 @@ defmodule AgentOps.Agent.ValidatorsTest do
       })
 
     assert {:error, :invalid_endpoint_ids} =
-             Validators.validate_plan(json,
+             Validators.validate_investigation(json,
                tool_allowlist: @tool_allowlist,
                endpoint_ids: [1, 2, 3]
              )
   end
 
-  test "validate_plan rejects invalid service_name" do
+  test "validate_investigation rejects invalid service_name" do
     json =
       Jason.encode!(%{
         "hypothesis" => "bad service",
@@ -72,14 +72,14 @@ defmodule AgentOps.Agent.ValidatorsTest do
       })
 
     assert {:error, :invalid_service_name} =
-             Validators.validate_plan(json,
+             Validators.validate_investigation(json,
                tool_allowlist: @tool_allowlist,
                endpoint_ids: [1],
                allowed_services: ["gupdate", "wuauserv"]
              )
   end
 
-  test "validate_plan rejects missing endpoint_ids for required tools" do
+  test "validate_investigation rejects missing endpoint_ids for required tools" do
     json =
       Jason.encode!(%{
         "hypothesis" => "missing ids",
@@ -89,14 +89,31 @@ defmodule AgentOps.Agent.ValidatorsTest do
       })
 
     assert {:error, :missing_endpoint_ids} =
-             Validators.validate_plan(json,
+             Validators.validate_investigation(json,
                tool_allowlist: @tool_allowlist,
                required_endpoint_tools: ["get_installed_software"],
                endpoint_ids: [1]
              )
   end
 
-  test "validate_plan repairs invalid json once" do
+  test "validate_investigation allows empty endpoint_ids when run has none" do
+    json =
+      Jason.encode!(%{
+        "hypothesis" => "no endpoints",
+        "steps" => [%{"tool" => "get_installed_software", "input" => %{"endpoint_ids" => []}}],
+        "stop_conditions" => [],
+        "risk_level" => "low"
+      })
+
+    assert {:ok, _} =
+             Validators.validate_investigation(json,
+               tool_allowlist: @tool_allowlist,
+               required_endpoint_tools: ["get_installed_software"],
+               endpoint_ids: []
+             )
+  end
+
+  test "validate_investigation repairs invalid json once" do
     repair_fun = fn _instruction ->
       Jason.encode!(%{
         "hypothesis" => "fixed",
@@ -106,7 +123,7 @@ defmodule AgentOps.Agent.ValidatorsTest do
       })
     end
 
-    assert {:ok, _} = Validators.validate_plan("{", repair_fun: repair_fun)
+    assert {:ok, _} = Validators.validate_investigation("{", repair_fun: repair_fun)
   end
 
   test "validate_proposal accepts valid proposal" do

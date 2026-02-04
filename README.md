@@ -1,7 +1,7 @@
 # Endpoint Remediation Planner (AgentOps)
 
 ## Overview
-Endpoint Remediation Planner is a safe, deterministic workflow that uses an LLM only for planning and proposing remediations. It is designed to help sysadmins and endpoint engineers investigate issues across fleets and draft consistent remediation recommendations without granting the model any execution capability. The system executes an allowlisted set of inventory tools against seeded endpoint data, validates all AI output, and stores an auditable timeline of steps in Postgres. No scripts are executed on endpoints.
+Endpoint Remediation Planner is a safe, deterministic workflow that uses an LLM only for investigation and proposing remediations. It is designed to help sysadmins and endpoint engineers investigate issues across fleets and draft consistent remediation recommendations without granting the model any execution capability. The system executes an allowlisted set of inventory tools against seeded endpoint data, validates all AI output, and stores an auditable timeline of steps in Postgres. No scripts are executed on endpoints.
 
 An endpoint represents an individual managed machine (laptop, desktop, server, or VM) tracked by an endpoint management system. This project models those machines as database records with fields like hostname, OS version, installed software, service status, and last_seen_at. The intended workflow mirrors a sysadmin ticket: given a request like “Chrome updates failing on endpoints 1–3,” the system queries inventory, reasons over the results, and proposes a remediation—without executing anything on devices.
 
@@ -13,7 +13,7 @@ Inputs:
 Outputs:
 - A run record with status
 - A step timeline containing:
-  - plan (LLM‑generated investigation steps)
+  - investigate (LLM‑generated investigation steps)
   - tool_call and observation steps (inventory results)
   - proposal (LLM‑suggested remediation template + params)
   - final (completion marker)
@@ -104,8 +104,8 @@ curl http://localhost:4000/api/runs/RUN_ID | jq .
    - An Oban job is enqueued with the run_id.
 
 2) Background job executes the run
-   - Step 1 (plan): planner prompt is sent to the LLM with allowlisted tools and strict JSON rules. The plan is validated and stored as a plan step.
-   - Step 2 (tool_call): each plan step becomes a tool_call step and is executed against seeded data.
+   - Step 1 (investigate): investigator prompt is sent to the LLM with allowlisted tools and strict JSON rules. The investigation is validated and stored as an investigate step.
+   - Step 2 (tool_call): each investigation step becomes a tool_call step and is executed against seeded data.
    - Step 3 (observation): the tool result is stored as an observation step. This observation is what the proposer later uses to draft the remediation proposal.
    - Step 4 (proposal): proposer prompt is sent with observations and allowlisted templates. The proposal is validated and stored as a proposal step.
    - Step 5 (final): a final step is stored and the run status is marked succeeded.
@@ -121,15 +121,15 @@ AgentOps is a Phoenix app with a small domain model and a background runner that
 Core flow:
 - `AgentOpsWeb.RunsController` accepts requests and creates `AgentRun` records.
 - An Oban job (`AgentOps.Agent.RunnerJob`) processes the run asynchronously.
-- The runner (`AgentOps.Agent.Runner`) orchestrates the plan → tool calls → observations → proposal → final steps, persisting each step as an `AgentStep`.
+- The runner (`AgentOps.Agent.Runner`) orchestrates the investigate → tool calls → observations → proposal → final steps, persisting each step as an `AgentStep`.
 
 LLM boundary and validation:
-- `AgentOps.Agent.Prompts` builds the planner/proposer prompts and declares the required JSON schemas.
+- `AgentOps.Agent.Prompts` builds the investigator/proposer prompts and declares the required JSON schemas.
 - `AgentOps.LLM.Client` dispatches to the configured provider; `AgentOps.LLM.OpenAIClient` calls OpenAI’s Chat Completions API.
 - `AgentOps.Agent.Validators` validates and (optionally) repairs LLM output to enforce schema and allowlists before anything is persisted or executed.
 
 Tools and remediation templates:
-- `AgentOps.Tools.Registry` is the allowlist and dispatch for inventory tools the planner may call.
+- `AgentOps.Tools.Registry` is the allowlist and dispatch for inventory tools the investigator may call.
 - `AgentOps.Tools.Inventory` implements the read‑only inventory queries against seeded endpoint data.
 - `AgentOps.Tools.RemediationTemplates` defines remediation templates, required params, and validation for proposals:
   - `enable_windows_service` with params `{ "service": "gupdate" | "wuauserv" }`
@@ -139,7 +139,7 @@ Tools and remediation templates:
 
 Data model:
 - `AgentOps.AgentRun`: one remediation run with input, mode, status, and state.
-- `AgentOps.AgentStep`: timeline of plan/tool/observation/proposal/final/error steps.
+- `AgentOps.AgentStep`: timeline of investigate/tool/observation/proposal/final/error steps.
 - `AgentOps.Endpoint`: simulated endpoints with inventory fields (hostname, OS version, services, software, last_seen_at).
 
 Observability:
@@ -148,10 +148,10 @@ Observability:
 The API is JSON-only (`/api/runs`, `/api/runs/:id`, `/healthz`) and returns full step timelines for auditability.
 
 ## Example prompts
-These show the full prompt strings constructed for the planner and proposer using the input:
+These show the full prompt strings constructed for the investigator and proposer using the input:
 "Chrome updates failing on endpoints 1-3. Investigate and propose remediation."
 
-Planner prompt:
+Investigator prompt:
 ```
 You are an expert sysadmin assistant. Return JSON only.
 
@@ -168,7 +168,7 @@ Allowed tools: get_installed_software, get_service_status
 Use only these tools.
 ```
 
-Validated planner JSON (example output):
+Validated investigator JSON (example output):
 ```json
 {
   "hypothesis": "gupdate service issues are blocking Chrome updates",

@@ -1,6 +1,6 @@
 defmodule AgentOps.Agent.Prompts do
   @moduledoc """
-  Builds structured prompts for the planner and proposer LLM calls.
+  Builds structured prompts for the investigator and proposer LLM calls.
   """
 
   @prompt_version "v1"
@@ -8,8 +8,8 @@ defmodule AgentOps.Agent.Prompts do
   @spec prompt_version() :: String.t()
   def prompt_version, do: @prompt_version
 
-  @spec planner_prompt(String.t(), [integer()]) :: String.t()
-  def planner_prompt(input, endpoint_ids) do
+  @spec investigator_prompt(String.t(), [integer()]) :: String.t()
+  def investigator_prompt(input, endpoint_ids) do
     endpoints = Enum.join(endpoint_ids, ", ")
 
     """

@@ -4,9 +4,9 @@ defmodule AgentOps.Agent.RunnerIntegrationTest do
   alias AgentOps
   alias AgentOps.Agent.Runner
 
-  test "happy path creates plan, tools, proposal, final" do
+  test "happy path creates investigation, tools, proposal, final" do
     stub_llm(%{
-      plan: %{
+      investigation: %{
         "hypothesis" => "gupdate disabled",
         "steps" => [
           %{"tool" => "get_installed_software", "input" => %{"endpoint_ids" => [1, 2, 3]}},
@@ -41,7 +41,7 @@ defmodule AgentOps.Agent.RunnerIntegrationTest do
     steps = AgentOps.list_agent_steps_for_run(run.id)
     types = Enum.map(steps, & &1.step_type)
 
-    assert :plan in types
+    assert :investigate in types
     assert :proposal in types
     assert :final in types
 
@@ -50,7 +50,7 @@ defmodule AgentOps.Agent.RunnerIntegrationTest do
 
   test "nil state does not crash" do
     stub_llm(%{
-      plan: %{
+      investigation: %{
         "hypothesis" => "no-op",
         "steps" => [],
         "stop_conditions" => [],
@@ -76,7 +76,7 @@ defmodule AgentOps.Agent.RunnerIntegrationTest do
     assert {:ok, :succeeded} = Runner.run(run.id)
 
     steps = AgentOps.list_agent_steps_for_run(run.id)
-    assert Enum.any?(steps, &(&1.step_type == :plan))
+    assert Enum.any?(steps, &(&1.step_type == :investigate))
     assert Enum.any?(steps, &(&1.step_type == :proposal))
     assert Enum.any?(steps, &(&1.step_type == :final))
 
@@ -85,7 +85,7 @@ defmodule AgentOps.Agent.RunnerIntegrationTest do
 
   test "unknown tool fails closed" do
     stub_llm(%{
-      plan: %{
+      investigation: %{
         "hypothesis" => "bad tool",
         "steps" => [%{"tool" => "nope", "input" => %{"endpoint_ids" => [1]}}],
         "stop_conditions" => [],
@@ -119,8 +119,8 @@ defmodule AgentOps.Agent.RunnerIntegrationTest do
 
   test "invalid json triggers repair attempt then fails" do
     stub_llm(%{
-      plan_raw: "{",
-      plan_repair_raw: "{",
+      investigation_raw: "{",
+      investigation_repair_raw: "{",
       proposal: %{
         "summary" => "irrelevant",
         "findings" => ["x"],
@@ -156,7 +156,7 @@ defmodule AgentOps.Agent.RunnerIntegrationTest do
         state: %{"endpoint_ids" => [1]}
       })
 
-    AgentOps.create_agent_step(%{agent_run_id: run.id, step_type: :plan, output: %{"ok" => true}})
+    AgentOps.create_agent_step(%{agent_run_id: run.id, step_type: :investigate, output: %{"ok" => true}})
 
     assert :ok = Runner.run(run.id)
 
@@ -165,13 +165,21 @@ defmodule AgentOps.Agent.RunnerIntegrationTest do
   end
 
   defp stub_llm(opts) do
-    Process.put({AgentOps.LLM.RunnerIntegrationStub, :plan}, Map.get(opts, :plan))
+    Process.put(
+      {AgentOps.LLM.RunnerIntegrationStub, :investigation},
+      Map.get(opts, :investigation)
+    )
+
     Process.put({AgentOps.LLM.RunnerIntegrationStub, :proposal}, Map.get(opts, :proposal))
-    Process.put({AgentOps.LLM.RunnerIntegrationStub, :plan_raw}, Map.get(opts, :plan_raw))
 
     Process.put(
-      {AgentOps.LLM.RunnerIntegrationStub, :plan_repair_raw},
-      Map.get(opts, :plan_repair_raw)
+      {AgentOps.LLM.RunnerIntegrationStub, :investigation_raw},
+      Map.get(opts, :investigation_raw)
+    )
+
+    Process.put(
+      {AgentOps.LLM.RunnerIntegrationStub, :investigation_repair_raw},
+      Map.get(opts, :investigation_repair_raw)
     )
 
     Application.put_env(:agent_ops, :llm_provider, AgentOps.LLM.RunnerIntegrationStub)
