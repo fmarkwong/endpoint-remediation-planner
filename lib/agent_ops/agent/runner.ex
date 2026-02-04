@@ -14,7 +14,7 @@ defmodule AgentOps.Agent.Runner do
   alias AgentOps.Observability.Log
   alias AgentOps.Repo
   alias AgentOps.Tools.Registry
-  alias AgentOps.Tools.Scripts
+  alias AgentOps.Tools.RemediationTemplates
 
   import Ecto.Query, warn: false
 
@@ -95,7 +95,7 @@ defmodule AgentOps.Agent.Runner do
                tool_allowlist: tool_allowlist,
                required_endpoint_tools: endpoint_tools,
                endpoint_ids: endpoint_ids,
-               allowed_services: Scripts.allowed_services(),
+               allowed_services: RemediationTemplates.allowed_services(),
                repair_fun: repair_fun
              ) do
         latency_ms = System.monotonic_time(:millisecond) - started_at
@@ -172,7 +172,7 @@ defmodule AgentOps.Agent.Runner do
       {:ok, %{}}
     else
       observations_json = observations |> stringify_keys() |> Jason.encode!()
-      template_allowlist = Scripts.list_templates() |> Enum.map(& &1.id)
+      template_allowlist = RemediationTemplates.list_templates() |> Enum.map(& &1.id)
 
       prompt =
         Prompts.proposer_prompt(run.input, observations_json, endpoint_ids) <>
@@ -191,7 +191,7 @@ defmodule AgentOps.Agent.Runner do
            {:ok, proposal} <-
              Validators.validate_proposal(content,
                template_allowlist: template_allowlist,
-               params_validator: &Scripts.validate_params/2,
+               params_validator: &RemediationTemplates.validate_params/2,
                repair_fun: repair_fun
              ) do
         latency_ms = System.monotonic_time(:millisecond) - started_at

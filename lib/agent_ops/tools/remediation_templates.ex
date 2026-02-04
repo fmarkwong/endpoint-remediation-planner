@@ -1,4 +1,4 @@
-defmodule AgentOps.Tools.Scripts do
+defmodule AgentOps.Tools.RemediationTemplates do
   @moduledoc """
   Remediation template registry and parameter validation.
   """

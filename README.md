@@ -131,7 +131,7 @@ LLM boundary and validation:
 Tools and remediation templates:
 - `AgentOps.Tools.Registry` is the allowlist and dispatch for inventory tools the planner may call.
 - `AgentOps.Tools.Inventory` implements the read‑only inventory queries against seeded endpoint data.
-- `AgentOps.Tools.Scripts` defines remediation templates, required params, and validation for proposals:
+- `AgentOps.Tools.RemediationTemplates` defines remediation templates, required params, and validation for proposals:
   - `enable_windows_service` with params `{ "service": "gupdate" | "wuauserv" }`
   - `restart_service` with params `{ "service": "gupdate" | "wuauserv" }`
   - `reinstall_application` with params `{ "app_name": "chrome" }`
