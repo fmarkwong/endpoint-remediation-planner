@@ -11,20 +11,25 @@ defmodule AgentOps.Tools.Scripts do
     "restart_service" => %{required: ["service"], allowed: ["service"]}
   }
 
+  @spec list_templates() :: [%{id: String.t(), required_params: [String.t()]}]
   def list_templates do
     Enum.map(@templates, fn {id, spec} ->
       %{id: id, required_params: spec.required}
     end)
   end
 
+  @spec allowed_services() :: [String.t()]
   def allowed_services, do: @allowed_services
 
+  @spec valid_template?(String.t()) :: boolean()
   def valid_template?(template_id) when is_binary(template_id) do
     Map.has_key?(@templates, template_id)
   end
 
+  @spec valid_template?(term()) :: false
   def valid_template?(_template_id), do: false
 
+  @spec validate_params(String.t(), map()) :: :ok | {:error, term()}
   def validate_params(template_id, params) when is_binary(template_id) and is_map(params) do
     case Map.get(@templates, template_id) do
       nil ->
@@ -53,6 +58,7 @@ defmodule AgentOps.Tools.Scripts do
     end
   end
 
+  @spec validate_params(term(), term()) :: {:error, :invalid_params}
   def validate_params(_template_id, _params), do: {:error, :invalid_params}
 
   defp valid_param?(params, key) do

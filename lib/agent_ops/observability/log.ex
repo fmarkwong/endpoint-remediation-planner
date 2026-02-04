@@ -5,10 +5,12 @@ defmodule AgentOps.Observability.Log do
 
   require Logger
 
+  @spec info(integer() | nil, integer() | nil, String.t(), map()) :: :ok
   def info(run_id, step_id, message, meta \\ %{}) do
     with_metadata(run_id, step_id, meta, fn -> Logger.info(message) end)
   end
 
+  @spec error(integer() | nil, integer() | nil, String.t(), map()) :: :ok
   def error(run_id, step_id, message, meta \\ %{}) do
     with_metadata(run_id, step_id, meta, fn -> Logger.error(message) end)
   end
@@ -18,10 +20,9 @@ defmodule AgentOps.Observability.Log do
 
     Logger.metadata(run_id: run_id, step_id: step_id)
 
-    case meta do
-      %{} -> Logger.metadata(meta)
-      _ -> :ok
-    end
+    meta
+    |> Enum.into([])
+    |> Logger.metadata()
 
     try do
       fun.()

@@ -6,6 +6,8 @@ defmodule AgentOps.LLM.Client do
   @callback complete(String.t(), Keyword.t()) ::
               {:ok, %{content: String.t(), usage: map()}} | {:error, term()}
 
+  @spec complete(String.t(), Keyword.t()) ::
+          {:ok, %{content: String.t(), usage: map()}} | {:error, term()}
   def complete(prompt, opts) do
     provider = Application.get_env(:agent_ops, :llm_provider)
 

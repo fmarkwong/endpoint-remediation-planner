@@ -8,6 +8,7 @@ defmodule AgentOps.Tools.Inventory do
   alias AgentOps.Endpoint
   alias AgentOps.Repo
 
+  @spec get_installed_software(map()) :: {:ok, map()} | {:error, term()}
   def get_installed_software(input) when is_map(input) do
     case extract_endpoint_ids(input) do
       {:ok, endpoint_ids} ->
@@ -30,8 +31,10 @@ defmodule AgentOps.Tools.Inventory do
     end
   end
 
+  @spec get_installed_software(term()) :: {:error, :invalid_input}
   def get_installed_software(_input), do: {:error, :invalid_input}
 
+  @spec get_service_status(map()) :: {:ok, map()} | {:error, term()}
   def get_service_status(input) when is_map(input) do
     with {:ok, endpoint_ids} <- extract_endpoint_ids(input),
          {:ok, service_name} <- extract_service_name(input) do
@@ -55,6 +58,7 @@ defmodule AgentOps.Tools.Inventory do
     end
   end
 
+  @spec get_service_status(term()) :: {:error, :invalid_input}
   def get_service_status(_input), do: {:error, :invalid_input}
 
   defp extract_endpoint_ids(input) do

@@ -5,10 +5,12 @@ defmodule AgentOps.Agent.Validators do
 
   @risk_levels ["low", "medium", "high"]
 
+  @spec validate_plan(String.t(), Keyword.t()) :: {:ok, map()} | {:error, term()}
   def validate_plan(raw, opts \\ []) when is_binary(raw) do
     validate_with_repair(:plan, raw, opts)
   end
 
+  @spec validate_proposal(String.t(), Keyword.t()) :: {:ok, map()} | {:error, term()}
   def validate_proposal(raw, opts \\ []) when is_binary(raw) do
     validate_with_repair(:proposal, raw, opts)
   end

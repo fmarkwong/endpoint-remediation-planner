@@ -2,6 +2,8 @@ defmodule AgentOps.Endpoint do
   @moduledoc """
   Schema representing a managed endpoint and its inventory data.
   """
+
+  @type t :: %__MODULE__{}
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -15,6 +17,7 @@ defmodule AgentOps.Endpoint do
     timestamps(type: :utc_datetime)
   end
 
+  @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(endpoint, attrs) do
     endpoint
     |> cast(attrs, [:hostname, :os_version, :installed_software, :services, :last_seen_at])

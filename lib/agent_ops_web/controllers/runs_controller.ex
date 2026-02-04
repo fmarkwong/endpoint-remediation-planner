@@ -7,6 +7,7 @@ defmodule AgentOpsWeb.RunsController do
   alias AgentOps
   alias AgentOps.Agent.RunnerJob
 
+  @spec create(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def create(conn, %{"input" => input}) when not is_binary(input) or input == "" do
     conn
     |> put_status(:bad_request)
@@ -51,6 +52,7 @@ defmodule AgentOpsWeb.RunsController do
     |> json(%{error: "input_required"})
   end
 
+  @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, %{"id" => id}) do
     case Integer.parse(id) do
       {run_id, ""} ->

@@ -5,8 +5,10 @@ defmodule AgentOps.Agent.Prompts do
 
   @prompt_version "v1"
 
+  @spec prompt_version() :: String.t()
   def prompt_version, do: @prompt_version
 
+  @spec planner_prompt(String.t(), [integer()]) :: String.t()
   def planner_prompt(input, endpoint_ids) do
     endpoints = Enum.join(endpoint_ids, ", ")
 
@@ -24,6 +26,7 @@ defmodule AgentOps.Agent.Prompts do
     """
   end
 
+  @spec proposer_prompt(String.t(), String.t(), [integer()]) :: String.t()
   def proposer_prompt(input, observations, endpoint_ids) do
     endpoints = Enum.join(endpoint_ids, ", ")
 

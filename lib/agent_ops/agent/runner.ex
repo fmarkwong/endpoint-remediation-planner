@@ -20,6 +20,7 @@ defmodule AgentOps.Agent.Runner do
 
   @max_steps 5
 
+  @spec run(integer()) :: :ok | {:ok, :succeeded} | {:error, term()}
   def run(run_id) when is_integer(run_id) do
     run = AgentOps.get_agent_run!(run_id)
 
@@ -65,6 +66,7 @@ defmodule AgentOps.Agent.Runner do
     end
   end
 
+  @spec run(term()) :: {:error, :invalid_run_id}
   def run(_run_id), do: {:error, :invalid_run_id}
 
   defp maybe_plan(run, endpoint_ids) do

@@ -4,6 +4,7 @@ defmodule AgentOpsWeb.HealthController do
   """
   use AgentOpsWeb, :controller
 
+  @spec index(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def index(conn, _params) do
     json(conn, %{ok: true})
   end

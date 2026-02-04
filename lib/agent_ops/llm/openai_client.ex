@@ -5,6 +5,8 @@ defmodule AgentOps.LLM.OpenAIClient do
 
   @behaviour AgentOps.LLM.Client
 
+  @spec complete(String.t(), Keyword.t()) ::
+          {:ok, %{content: String.t(), usage: map()}} | {:error, term()}
   def complete(prompt, opts) when is_binary(prompt) and is_list(opts) do
     api_key = System.get_env("OPENAI_API_KEY")
     model = Keyword.get(opts, :model) || System.get_env("OPENAI_MODEL") || "gpt-4o-mini"
@@ -53,5 +55,6 @@ defmodule AgentOps.LLM.OpenAIClient do
     end
   end
 
+  @spec complete(term(), term()) :: {:error, :invalid_prompt}
   def complete(_prompt, _opts), do: {:error, :invalid_prompt}
 end

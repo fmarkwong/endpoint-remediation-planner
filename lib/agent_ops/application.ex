@@ -8,6 +8,7 @@ defmodule AgentOps.Application do
   use Application
 
   @impl true
+  @spec start(Application.start_type(), term()) :: Supervisor.on_start()
   def start(_type, _args) do
     children = [
       AgentOpsWeb.Telemetry,
@@ -32,6 +33,7 @@ defmodule AgentOps.Application do
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.
   @impl true
+  @spec config_change(keyword(), keyword(), keyword()) :: :ok
   def config_change(changed, _new, removed) do
     AgentOpsWeb.Endpoint.config_change(changed, removed)
     :ok
