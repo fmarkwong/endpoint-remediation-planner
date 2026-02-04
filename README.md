@@ -3,6 +3,8 @@
 ## Overview
 Endpoint Remediation Planner is a safe, deterministic workflow that uses an LLM only for planning and proposing remediations. It is designed to help sysadmins and endpoint engineers investigate issues across fleets and draft consistent remediation recommendations without granting the model any execution capability. The system executes an allowlisted set of inventory tools against seeded endpoint data, validates all AI output, and stores an auditable timeline of steps in Postgres. No scripts are executed on endpoints.
 
+An endpoint represents an individual managed machine (laptop, desktop, server, or VM) tracked by an endpoint management system. This project models those machines as database records with fields like hostname, OS version, installed software, service status, and last_seen_at. The intended workflow mirrors a sysadmin ticket: given a request like “Chrome updates failing on endpoints 1–3,” the system queries inventory, reasons over the results, and proposes a remediation—without executing anything on devices.
+
 Inputs:
 - A natural‑language request (input)
 - Optional endpoint_ids (subset of seeded endpoints)
